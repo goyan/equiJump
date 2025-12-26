@@ -1,10 +1,12 @@
 'use client';
 
 import { useGameTime, useGameFaults, useCurrentGait, useCurrentSpeed } from '@/stores/gameStore';
+import { HelpCircle } from 'lucide-react';
 import type { Gait } from '@/types/game';
 
 interface HUDOverlayProps {
   onPause: () => void;
+  onHelp: () => void;
 }
 
 const GAIT_LABELS: Record<Gait, string> = {
@@ -23,7 +25,7 @@ const GAIT_COLORS: Record<Gait, string> = {
   extended: 'text-red-400',
 };
 
-export function HUDOverlay({ onPause }: HUDOverlayProps) {
+export function HUDOverlay({ onPause, onHelp }: HUDOverlayProps) {
   const time = useGameTime();
   const faults = useGameFaults();
   const gait = useCurrentGait();
@@ -83,10 +85,20 @@ export function HUDOverlay({ onPause }: HUDOverlayProps) {
             </div>
           </div>
 
+          {/* Help button */}
+          <button
+            onClick={onHelp}
+            className="bg-black/60 backdrop-blur-md rounded-xl p-3 border border-white/10 pointer-events-auto hover:bg-white/10 transition-colors"
+            title="Help"
+          >
+            <HelpCircle className="w-6 h-6 text-white" />
+          </button>
+
           {/* Pause button */}
           <button
             onClick={onPause}
             className="bg-black/60 backdrop-blur-md rounded-xl p-3 border border-white/10 pointer-events-auto hover:bg-white/10 transition-colors"
+            title="Pause"
           >
             <svg
               className="w-6 h-6 text-white"

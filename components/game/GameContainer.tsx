@@ -1,20 +1,48 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useGameStore } from '@/stores/gameStore';
 import { HUDOverlay } from './HUDOverlay';
 import { TouchControls } from './TouchControls';
 import { JumpFeedback } from './JumpFeedback';
 import { ResultsModal } from './ResultsModal';
+import { TutorialModal } from './TutorialModal';
 
 interface GameContainerProps {
   courseId: string;
 }
 
+const TUTORIAL_SEEN_KEY = 'equijump_tutorial_seen';
+
 export function GameContainer({ courseId }: GameContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
   const { status, reset } = useGameStore();
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  // Check if first-time player
+  useEffect(() => {
+    const hasSeenTutorial = localStorage.getItem(TUTORIAL_SEEN_KEY);
+    if (!hasSeenTutorial) {
+      setShowTutorial(true);
+    }
+  }, []);
+
+  const handleCloseTutorial = useCallback(() => {
+    setShowTutorial(false);
+    localStorage.setItem(TUTORIAL_SEEN_KEY, 'true');
+  }, []);
+
+  const handleShowHelp = useCallback(() => {
+    setShowTutorial(true);
+    // Pause game when showing help
+    if (gameRef.current) {
+      const gameScene = gameRef.current.scene.getScene('GameScene') as any;
+      if (gameScene && typeof gameScene.pause === 'function') {
+        gameScene.pause();
+      }
+    }
+  }, []);
 
   // Initialize Phaser game
   useEffect(() => {
@@ -89,7 +117,7 @@ export function GameContainer({ courseId }: GameContainerProps) {
       />
 
       {/* React overlays */}
-      <HUDOverlay onPause={handlePause} />
+      <HUDOverlay onPause={handlePause} onHelp={handleShowHelp} />
       <TouchControls gameRef={gameRef} />
       <JumpFeedback />
 
@@ -120,6 +148,9 @@ export function GameContainer({ courseId }: GameContainerProps) {
           </div>
         </div>
       )}
+
+      {/* Tutorial modal */}
+      <TutorialModal isOpen={showTutorial} onClose={handleCloseTutorial} />
     </div>
   );
 }

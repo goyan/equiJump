@@ -91,7 +91,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="py-6 text-center text-white/40 text-sm">
-        <p>© 2024 EquiJump. Built with passion for equestrian sports.</p>
+        <p>© 2025 goyan. Built with passion for equestrian sports.</p>
       </footer>
     </main>
   );
