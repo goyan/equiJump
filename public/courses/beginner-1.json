@@ -1,0 +1,57 @@
+{
+  "id": "beginner-1",
+  "name": "First Steps",
+  "description": "A simple course to learn the basics of approach and timing",
+  "difficulty": "beginner",
+  "timeLimit": 60,
+  "obstacles": [
+    {
+      "id": "obs-1",
+      "type": "vertical",
+      "x": 600,
+      "y": 400,
+      "rotation": 0,
+      "height": 80
+    },
+    {
+      "id": "obs-2",
+      "type": "vertical",
+      "x": 900,
+      "y": 500,
+      "rotation": 0.3,
+      "height": 90
+    },
+    {
+      "id": "obs-3",
+      "type": "oxer",
+      "x": 1200,
+      "y": 400,
+      "rotation": -0.2,
+      "height": 100,
+      "width": 100
+    },
+    {
+      "id": "obs-4",
+      "type": "vertical",
+      "x": 1500,
+      "y": 600,
+      "rotation": 0,
+      "height": 80
+    }
+  ],
+  "startPosition": {
+    "x": 200,
+    "y": 400
+  },
+  "startRotation": 0,
+  "finishLine": {
+    "x1": 1800,
+    "y1": 300,
+    "x2": 1800,
+    "y2": 700
+  },
+  "arena": {
+    "width": 2000,
+    "height": 1000
+  }
+}

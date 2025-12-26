@@ -3,7 +3,7 @@ import type { ObstaclePlacement, ObstacleType } from '@/types/game';
 import { OBSTACLE, TAKEOFF_ZONES, COLORS } from '../constants';
 
 export class Obstacle extends Phaser.GameObjects.Container {
-  public readonly data: ObstaclePlacement;
+  public readonly placement: ObstaclePlacement;
   private sprite: Phaser.GameObjects.Sprite;
   private knockedPoles: Phaser.GameObjects.Sprite[] = [];
   private isKnocked: boolean = false;
@@ -12,7 +12,7 @@ export class Obstacle extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene, placement: ObstaclePlacement, showZones: boolean = false) {
     super(scene, placement.x, placement.y);
 
-    this.data = placement;
+    this.placement = placement;
 
     // Create main sprite
     const textureKey = this.getTextureKey(placement.type);
@@ -101,7 +101,7 @@ export class Obstacle extends Phaser.GameObjects.Container {
     });
 
     // Emit knocked event
-    this.emit('knocked', this.data);
+    this.emit('knocked', this.placement);
   }
 
   /**
@@ -122,7 +122,7 @@ export class Obstacle extends Phaser.GameObjects.Container {
    * Get obstacle bounds for collision detection
    */
   getBounds(): Phaser.Geom.Rectangle {
-    const dims = OBSTACLE[this.data.type] || OBSTACLE.vertical;
+    const dims = OBSTACLE[this.placement.type] || OBSTACLE.vertical;
     return new Phaser.Geom.Rectangle(
       this.x - dims.width / 2,
       this.y - dims.height / 2,

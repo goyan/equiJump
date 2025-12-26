@@ -198,7 +198,7 @@ export class GameScene extends Phaser.Scene {
     this.totalFaults += result.faults;
 
     // Find and update obstacle
-    const obs = this.obstacles.find(o => o.data.id === obstacle.id);
+    const obs = this.obstacles.find(o => o.placement.id === obstacle.id);
     if (obs && result.outcome === 'rail') {
       obs.knock();
     }
@@ -304,7 +304,7 @@ export class GameScene extends Phaser.Scene {
     const input = this.getInputState();
 
     // Update horse with obstacle data for jump detection
-    const obstacleData = this.obstacles.map(o => o.data);
+    const obstacleData = this.obstacles.map(o => o.placement);
     this.horse.update(delta, input, obstacleData);
 
     // Check finish line

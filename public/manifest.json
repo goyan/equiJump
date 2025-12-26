@@ -1,0 +1,37 @@
+{
+  "name": "EquiJump - Horse Jumping Simulator",
+  "short_name": "EquiJump",
+  "description": "Master the art of show jumping through realistic simulation",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0E17",
+  "theme_color": "#00F5FF",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["games", "education"],
+  "screenshots": [
+    {
+      "src": "/screenshots/gameplay.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Gameplay screenshot"
+    }
+  ]
+}
