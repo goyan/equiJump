@@ -12,6 +12,7 @@ interface GameState {
   gait: Gait;
   speed: number;
   isJumping: boolean;
+  stridesSinceObstacle: number;
 
   // Results
   lastJumpResult: JumpResult | null;
@@ -37,6 +38,7 @@ const initialState = {
   gait: 'halt' as Gait,
   speed: 0,
   isJumping: false,
+  stridesSinceObstacle: 0,
   lastJumpResult: null,
   finalScore: null,
 };
@@ -76,6 +78,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           gait: data.gait,
           speed: data.speed,
           isJumping: data.isJumping,
+          stridesSinceObstacle: data.stridesSinceObstacle ?? 0,
         });
         break;
 
@@ -134,5 +137,6 @@ export const useGameTime = () => useGameStore((s) => s.time);
 export const useGameFaults = () => useGameStore((s) => s.faults);
 export const useCurrentGait = () => useGameStore((s) => s.gait);
 export const useCurrentSpeed = () => useGameStore((s) => s.speed);
+export const useStridesSinceObstacle = () => useGameStore((s) => s.stridesSinceObstacle);
 export const useLastJumpResult = () => useGameStore((s) => s.lastJumpResult);
 export const useFinalScore = () => useGameStore((s) => s.finalScore);

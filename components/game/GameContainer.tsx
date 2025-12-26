@@ -64,7 +64,11 @@ export function GameContainer({ courseId }: GameContainerProps) {
 
       // Pass data to game registry
       gameRef.current.registry.set('courseId', courseId);
-      gameRef.current.registry.set('store', useGameStore.getState());
+      // Pass the store with its methods (not just the state)
+      gameRef.current.registry.set('store', {
+        handleGameEvent: useGameStore.getState().handleGameEvent,
+        getState: useGameStore.getState,
+      });
     };
 
     initGame();

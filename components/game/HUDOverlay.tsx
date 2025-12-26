@@ -1,6 +1,6 @@
 'use client';
 
-import { useGameTime, useGameFaults, useCurrentGait, useCurrentSpeed } from '@/stores/gameStore';
+import { useGameTime, useGameFaults, useCurrentGait, useCurrentSpeed, useStridesSinceObstacle } from '@/stores/gameStore';
 import { HelpCircle } from 'lucide-react';
 import type { Gait } from '@/types/game';
 
@@ -30,6 +30,7 @@ export function HUDOverlay({ onPause, onHelp }: HUDOverlayProps) {
   const faults = useGameFaults();
   const gait = useCurrentGait();
   const speed = useCurrentSpeed();
+  const strides = useStridesSinceObstacle();
 
   const formatTime = (ms: number): string => {
     const seconds = Math.floor(ms / 1000);
@@ -43,25 +44,37 @@ export function HUDOverlay({ onPause, onHelp }: HUDOverlayProps) {
   return (
     <div className="absolute inset-x-0 top-0 pointer-events-none z-40">
       <div className="flex justify-between items-start p-4">
-        {/* Left: Speed and Gait */}
-        <div className="bg-black/60 backdrop-blur-md rounded-xl p-4 border border-white/10 pointer-events-auto">
-          <div className="flex flex-col items-center min-w-[120px]">
-            {/* Gait indicator */}
-            <div className={`text-lg font-bold ${GAIT_COLORS[gait]}`}>
-              {GAIT_LABELS[gait]}
-            </div>
+        {/* Left: Speed, Gait and Strides */}
+        <div className="flex items-start gap-3">
+          <div className="bg-black/60 backdrop-blur-md rounded-xl p-4 border border-white/10 pointer-events-auto">
+            <div className="flex flex-col items-center min-w-[120px]">
+              {/* Gait indicator */}
+              <div className={`text-lg font-bold ${GAIT_COLORS[gait]}`}>
+                {GAIT_LABELS[gait]}
+              </div>
 
-            {/* Speed bar */}
-            <div className="w-full h-2 bg-white/20 rounded-full mt-2 overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-green-400 via-yellow-400 to-red-400 transition-all duration-150"
-                style={{ width: `${Math.min(100, (speed / 400) * 100)}%` }}
-              />
-            </div>
+              {/* Speed bar */}
+              <div className="w-full h-2 bg-white/20 rounded-full mt-2 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-green-400 via-yellow-400 to-red-400 transition-all duration-150"
+                  style={{ width: `${Math.min(100, (speed / 400) * 100)}%` }}
+                />
+              </div>
 
-            {/* Speed value */}
-            <div className="text-sm text-white/60 mt-1">
-              {Math.round(speed)} px/s
+              {/* Speed value */}
+              <div className="text-sm text-white/60 mt-1">
+                {Math.round(speed)} px/s
+              </div>
+            </div>
+          </div>
+
+          {/* Stride counter */}
+          <div className="bg-black/60 backdrop-blur-md rounded-xl px-4 py-3 border border-primary/30 pointer-events-auto">
+            <div className="text-center">
+              <div className="text-xs text-primary/80 uppercase tracking-wider">Strides</div>
+              <div className="text-2xl font-bold text-primary">
+                {strides}
+              </div>
             </div>
           </div>
         </div>

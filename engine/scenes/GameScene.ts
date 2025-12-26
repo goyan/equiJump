@@ -38,6 +38,7 @@ export class GameScene extends Phaser.Scene {
   private jumpResults: JumpResult[] = [];
   private finishLineGraphics!: Phaser.GameObjects.Graphics;
   private arenaGraphics!: Phaser.GameObjects.Graphics;
+  private coursePathGraphics!: Phaser.GameObjects.Graphics;
 
   // UI elements
   private debugText?: Phaser.GameObjects.Text;
@@ -60,6 +61,9 @@ export class GameScene extends Phaser.Scene {
 
     // Create arena background
     this.createArena();
+
+    // Create course path (track)
+    this.createCoursePath();
 
     // Create finish line
     this.createFinishLine();
@@ -134,6 +138,130 @@ export class GameScene extends Phaser.Scene {
         fontSize: '24px',
         color: '#ffffff',
       }).setOrigin(0.5, 0.5).setAlpha(0.5);
+    }
+  }
+
+  /**
+   * Create course path showing the track between obstacles with arrows
+   */
+  private createCoursePath(): void {
+    this.coursePathGraphics = this.add.graphics();
+    this.coursePathGraphics.setDepth(-2);
+
+    // Build path: start -> obstacles in order -> finish
+    const points: Array<{ x: number; y: number }> = [
+      this.course.startPosition,
+      ...this.course.obstacles.map(o => ({ x: o.x, y: o.y })),
+      {
+        x: this.course.finishLine.x1,
+        y: (this.course.finishLine.y1 + this.course.finishLine.y2) / 2
+      },
+    ];
+
+    // Draw path with arrows between each segment
+    for (let i = 0; i < points.length - 1; i++) {
+      const start = points[i];
+      const end = points[i + 1];
+      this.drawPathWithArrows(start.x, start.y, end.x, end.y);
+    }
+
+    // Draw obstacle numbers
+    this.course.obstacles.forEach((obs, index) => {
+      // Number circle background
+      this.coursePathGraphics.fillStyle(0x00F5FF, 0.9);
+      this.coursePathGraphics.fillCircle(obs.x, obs.y - 60, 20);
+
+      // Number text
+      this.add.text(obs.x, obs.y - 60, `${index + 1}`, {
+        fontFamily: 'Arial',
+        fontSize: '18px',
+        fontStyle: 'bold',
+        color: '#000000',
+      }).setOrigin(0.5, 0.5);
+    });
+
+    // Draw start marker
+    this.coursePathGraphics.fillStyle(0x00FF00, 0.6);
+    this.coursePathGraphics.fillCircle(this.course.startPosition.x, this.course.startPosition.y, 30);
+    this.coursePathGraphics.lineStyle(3, 0x00FF00, 1);
+    this.coursePathGraphics.strokeCircle(this.course.startPosition.x, this.course.startPosition.y, 30);
+    this.add.text(this.course.startPosition.x, this.course.startPosition.y - 50, 'DÉPART', {
+      fontFamily: 'Arial',
+      fontSize: '16px',
+      fontStyle: 'bold',
+      color: '#00FF00',
+    }).setOrigin(0.5, 0.5);
+
+    // Draw finish marker
+    this.coursePathGraphics.fillStyle(0xFF6600, 0.6);
+    const finishX = this.course.finishLine.x1;
+    const finishY = (this.course.finishLine.y1 + this.course.finishLine.y2) / 2;
+    this.coursePathGraphics.fillCircle(finishX, finishY, 30);
+    this.coursePathGraphics.lineStyle(3, 0xFF6600, 1);
+    this.coursePathGraphics.strokeCircle(finishX, finishY, 30);
+    this.add.text(finishX + 50, finishY, 'ARRIVÉE', {
+      fontFamily: 'Arial',
+      fontSize: '16px',
+      fontStyle: 'bold',
+      color: '#FF6600',
+    }).setOrigin(0, 0.5);
+  }
+
+  /**
+   * Draw path line with direction arrows
+   */
+  private drawPathWithArrows(x1: number, y1: number, x2: number, y2: number): void {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx);
+
+    // Unit vectors
+    const unitX = dx / distance;
+    const unitY = dy / distance;
+
+    // Draw main path line (thick, semi-transparent)
+    this.coursePathGraphics.lineStyle(12, 0x00F5FF, 0.25);
+    this.coursePathGraphics.beginPath();
+    this.coursePathGraphics.moveTo(x1, y1);
+    this.coursePathGraphics.lineTo(x2, y2);
+    this.coursePathGraphics.strokePath();
+
+    // Draw center line
+    this.coursePathGraphics.lineStyle(2, 0x00F5FF, 0.5);
+    this.coursePathGraphics.beginPath();
+    this.coursePathGraphics.moveTo(x1, y1);
+    this.coursePathGraphics.lineTo(x2, y2);
+    this.coursePathGraphics.strokePath();
+
+    // Draw arrows along the path
+    const arrowSpacing = 80;
+    const arrowCount = Math.floor(distance / arrowSpacing);
+    const arrowSize = 15;
+
+    for (let i = 1; i <= arrowCount; i++) {
+      const t = i / (arrowCount + 1);
+      const arrowX = x1 + dx * t;
+      const arrowY = y1 + dy * t;
+
+      // Draw arrow head (chevron pointing in direction of travel)
+      this.coursePathGraphics.lineStyle(3, 0x00F5FF, 0.7);
+      this.coursePathGraphics.beginPath();
+
+      // Left side of arrow
+      this.coursePathGraphics.moveTo(
+        arrowX - Math.cos(angle - Math.PI / 6) * arrowSize,
+        arrowY - Math.sin(angle - Math.PI / 6) * arrowSize
+      );
+      this.coursePathGraphics.lineTo(arrowX, arrowY);
+
+      // Right side of arrow
+      this.coursePathGraphics.lineTo(
+        arrowX - Math.cos(angle + Math.PI / 6) * arrowSize,
+        arrowY - Math.sin(angle + Math.PI / 6) * arrowSize
+      );
+
+      this.coursePathGraphics.strokePath();
     }
   }
 
@@ -322,13 +450,14 @@ export class GameScene extends Phaser.Scene {
     // Update debug text
     if (this.debugText) {
       const state = this.horse.getState();
+      const strideInfo = this.horse.getStrideInfo();
       this.debugText.setText([
         `Gait: ${state.gait}`,
         `Speed: ${this.horse.getSpeed().toFixed(0)} px/s`,
         `Time: ${(this.elapsedTime / 1000).toFixed(1)}s`,
         `Faults: ${this.totalFaults}`,
-        `Straightness: ${(state.straightness * 100).toFixed(0)}%`,
-        `Balance: ${(state.balance * 100).toFixed(0)}%`,
+        `Strides: ${strideInfo.stridesSinceLastObstacle} (total: ${strideInfo.totalStrides})`,
+        `Stride Progress: ${(strideInfo.currentStrideProgress * 100).toFixed(0)}%`,
         `Jumping: ${state.isJumping ? state.jumpPhase : 'no'}`,
       ].join('\n'));
     }
@@ -340,6 +469,7 @@ export class GameScene extends Phaser.Scene {
       gait: this.horse.getGait(),
       speed: this.horse.getSpeed(),
       isJumping: this.horse.getIsJumping(),
+      stridesSinceObstacle: this.horse.getStridesSinceObstacle(),
     });
   }
 

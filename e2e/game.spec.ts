@@ -2,6 +2,10 @@ import { test, expect } from '@playwright/test';
 
 test.describe('EquiJump Game', () => {
   test.beforeEach(async ({ page }) => {
+    // Set localStorage to skip tutorial modal
+    await page.addInitScript(() => {
+      localStorage.setItem('equijump_tutorial_seen', 'true');
+    });
     await page.goto('/');
   });
 
@@ -75,8 +79,8 @@ test.describe('EquiJump Game', () => {
     await page.waitForSelector('canvas', { timeout: 10000 });
     await page.waitForTimeout(1000);
 
-    // Find and click pause button (SVG with pause icon)
-    const pauseButton = page.locator('button').filter({ has: page.locator('svg') }).first();
+    // Find and click pause button (last button with SVG, after help button)
+    const pauseButton = page.locator('button[title="Pause"]');
     await pauseButton.click();
 
     // Pause overlay should appear
@@ -92,6 +96,13 @@ test.describe('EquiJump Game', () => {
 });
 
 test.describe('Courses Page', () => {
+  test.beforeEach(async ({ page }) => {
+    // Set localStorage to skip tutorial modal
+    await page.addInitScript(() => {
+      localStorage.setItem('equijump_tutorial_seen', 'true');
+    });
+  });
+
   test('displays available courses', async ({ page }) => {
     await page.goto('/courses');
 
@@ -117,6 +128,13 @@ test.describe('Courses Page', () => {
 
 test.describe('Mobile', () => {
   test.use({ viewport: { width: 375, height: 667 }, hasTouch: true });
+
+  test.beforeEach(async ({ page }) => {
+    // Set localStorage to skip tutorial modal
+    await page.addInitScript(() => {
+      localStorage.setItem('equijump_tutorial_seen', 'true');
+    });
+  });
 
   test('touch controls visible on mobile', async ({ page }) => {
     await page.goto('/play/beginner-1');

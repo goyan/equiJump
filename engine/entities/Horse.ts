@@ -2,10 +2,12 @@ import Phaser from 'phaser';
 import type { Gait, HorseState, InputState, JumpResult, ObstaclePlacement } from '@/types/game';
 import { GaitSystem } from '../systems/GaitSystem';
 import { JumpEvaluator } from '../systems/JumpEvaluator';
+import { StrideSystem } from '../systems/StrideSystem';
 import { HORSE, PHYSICS } from '../constants';
 
 export class Horse extends Phaser.Physics.Arcade.Sprite {
   private gaitSystem: GaitSystem;
+  private strideSystem: StrideSystem;
   private isJumping: boolean = false;
   private jumpPhase: 'takeoff' | 'airborne' | 'landing' | null = null;
   private jumpTimer: number = 0;
@@ -13,10 +15,13 @@ export class Horse extends Phaser.Physics.Arcade.Sprite {
   private balance: number = 0;
   private lastTurnDirection: number = 0;
   private obstaclesJumped: Set<string> = new Set();
+  private hoofprints: Phaser.GameObjects.Graphics;
+  private hoofprintPositions: Array<{ x: number; y: number; alpha: number; time: number }> = [];
 
   // Events
   public onJump: Phaser.Events.EventEmitter;
   public onGaitChange: Phaser.Events.EventEmitter;
+  public onStride: Phaser.Events.EventEmitter;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'horse');
@@ -36,16 +41,28 @@ export class Horse extends Phaser.Physics.Arcade.Sprite {
 
     // Initialize systems
     this.gaitSystem = new GaitSystem('halt');
+    this.strideSystem = new StrideSystem({ x, y });
+
+    // Create hoofprint graphics
+    this.hoofprints = scene.add.graphics();
+    this.hoofprints.setDepth(-1);
 
     // Event emitters
     this.onJump = new Phaser.Events.EventEmitter();
     this.onGaitChange = new Phaser.Events.EventEmitter();
+    this.onStride = new Phaser.Events.EventEmitter();
+
+    // Setup stride callback
+    this.strideSystem.onStride = (strideNum, pos, gait) => {
+      this.addHoofprint(pos, gait);
+      this.onStride.emit('stride', strideNum, pos, gait);
+    };
   }
 
   /**
    * Update horse each frame
    */
-  update(delta: number, input: InputState, obstacles: ObstaclePlacement[]): void {
+  update(delta: number, input: InputState, obstacles: ObstaclePlacement[], currentTime: number = Date.now()): void {
     // Update gait system
     this.gaitSystem.update(delta);
 
@@ -63,6 +80,18 @@ export class Horse extends Phaser.Physics.Arcade.Sprite {
 
     // Update balance
     this.updateBalance(delta);
+
+    // Update stride system (not while jumping)
+    if (!this.isJumping) {
+      this.strideSystem.update(
+        { x: this.x, y: this.y },
+        this.gaitSystem.getCurrentGait(),
+        currentTime
+      );
+    }
+
+    // Update hoofprint fade
+    this.updateHoofprints(delta);
 
     // Handle jumping
     if (this.isJumping) {
@@ -202,6 +231,9 @@ export class Horse extends Phaser.Physics.Arcade.Sprite {
     this.jumpPhase = 'takeoff';
     this.jumpTimer = 0;
 
+    // Reset stride counter for next obstacle
+    this.strideSystem.resetStrideCount();
+
     // Change to jumping sprite
     this.setTexture('horse_jump');
 
@@ -212,6 +244,69 @@ export class Horse extends Phaser.Physics.Arcade.Sprite {
       this.gaitSystem.getSpeed() * 1.5,
       body.velocity
     );
+  }
+
+  /**
+   * Add hoofprint at position
+   */
+  private addHoofprint(position: { x: number; y: number }, gait: Gait): void {
+    // Limit number of hoofprints
+    if (this.hoofprintPositions.length > 100) {
+      this.hoofprintPositions.shift();
+    }
+
+    // Add slight offset based on stride (alternating left/right for each pair of hooves)
+    const strideNum = this.hoofprintPositions.length;
+    const perpAngle = this.rotation + Math.PI / 2;
+
+    // Create 4 hoofprints per stride (4 hooves)
+    const offsets = [
+      { x: -12, y: -8 },  // Front left
+      { x: 12, y: -8 },   // Front right
+      { x: -10, y: 8 },   // Back left
+      { x: 10, y: 8 },    // Back right
+    ];
+
+    // Select which hooves based on gait pattern
+    const hoofIndex = strideNum % 4;
+    const offset = offsets[hoofIndex];
+
+    // Transform offset based on horse rotation
+    const cosR = Math.cos(this.rotation);
+    const sinR = Math.sin(this.rotation);
+    const worldOffsetX = offset.x * cosR - offset.y * sinR;
+    const worldOffsetY = offset.x * sinR + offset.y * cosR;
+
+    this.hoofprintPositions.push({
+      x: position.x + worldOffsetX,
+      y: position.y + worldOffsetY,
+      alpha: 1.0,
+      time: Date.now(),
+    });
+  }
+
+  /**
+   * Update hoofprint fade animation
+   */
+  private updateHoofprints(delta: number): void {
+    // Fade and remove old hoofprints (slower fade)
+    const fadeRate = 0.0005 * delta;
+    this.hoofprintPositions = this.hoofprintPositions.filter(hp => {
+      hp.alpha -= fadeRate;
+      return hp.alpha > 0;
+    });
+
+    // Redraw hoofprints
+    this.hoofprints.clear();
+    for (const hp of this.hoofprintPositions) {
+      // Draw hoofprint shape (U-shaped like real horse hoofprint)
+      this.hoofprints.lineStyle(2, 0xFFD700, hp.alpha); // Gold/yellow color
+      this.hoofprints.strokeCircle(hp.x, hp.y, 6);
+
+      // Add inner dot
+      this.hoofprints.fillStyle(0xFFD700, hp.alpha * 0.5);
+      this.hoofprints.fillCircle(hp.x, hp.y, 3);
+    }
   }
 
   /**
@@ -299,17 +394,41 @@ export class Horse extends Phaser.Physics.Arcade.Sprite {
   }
 
   /**
+   * Get strides since last obstacle
+   */
+  getStridesSinceObstacle(): number {
+    return this.strideSystem.getStridesSinceLastObstacle();
+  }
+
+  /**
+   * Get stride progress (0-1) for animation
+   */
+  getStrideProgress(): number {
+    return this.strideSystem.getStrideProgress();
+  }
+
+  /**
+   * Get full stride info
+   */
+  getStrideInfo() {
+    return this.strideSystem.getInfo();
+  }
+
+  /**
    * Reset horse state
    */
   reset(x: number, y: number, rotation: number): void {
     this.setPosition(x, y);
     this.setRotation(rotation);
     this.gaitSystem = new GaitSystem('halt');
+    this.strideSystem.reset({ x, y });
     this.isJumping = false;
     this.jumpPhase = null;
     this.straightness = 1;
     this.balance = 0;
     this.obstaclesJumped.clear();
+    this.hoofprintPositions = [];
+    this.hoofprints.clear();
 
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocity(0, 0);
